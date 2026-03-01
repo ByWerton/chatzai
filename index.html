@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Chatzai | Güvenli Alan</title>
+    <title>Chatzai | Güvenli Mesajlaşma</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
         #chat-messages::-webkit-scrollbar { width: 6px; }
         #chat-messages::-webkit-scrollbar-thumb { background-color: #cbd5e1; border-radius: 10px; }
-        .animate-fade-in { animation: fadeIn 0.3s ease-in; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .message-box { transition: all 0.2s ease; }
     </style>
 </head>
 <body class="bg-slate-100 h-screen flex flex-col font-sans overflow-hidden">
@@ -21,13 +20,13 @@
             <div class="space-y-4">
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Görünür Adınız</label>
-                    <input type="text" id="username-input" placeholder="Örn: Gezgin" class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <input type="text" id="username-input" placeholder="Örn: Gezgin" class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
                 <div>
                     <label class="block text-sm font-medium text-gray-700 mb-1">Sistem Şifresi</label>
-                    <input type="password" id="password-input" placeholder="Şifreyi girin..." class="w-full p-3 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                    <input type="password" id="password-input" placeholder="Şifreyi girin..." class="w-full p-3 border border-slate-300 rounded-xl outline-none focus:ring-2 focus:ring-blue-500">
                 </div>
-                <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl transition-all shadow-lg active:scale-95">
+                <button id="login-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl shadow-lg active:scale-95 transition-all">
                     Giriş Yap
                 </button>
                 <p id="login-error" class="text-red-500 text-sm text-center hidden font-medium"></p>
@@ -38,20 +37,20 @@
     <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b z-10">
         <div>
             <h2 class="font-bold text-xl text-blue-600 leading-none">Chatzai</h2>
-            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider italic">Gelecek Çarşamba Hedefi</p>
+            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">Bağlantı Şifreli</p>
         </div>
-        <div id="user-display" class="text-xs bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 font-semibold border italic">Bağlantı Bekleniyor...</div>
+        <div id="user-display" class="text-xs bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 font-semibold border italic">Yükleniyor...</div>
     </header>
 
     <main id="chat-messages" class="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50">
-        <div class="text-center text-slate-400 text-sm my-10 italic">Lütfen giriş yapın...</div>
+        <div class="text-center text-slate-400 text-sm my-10 italic">Mesajlar yükleniyor...</div>
     </main>
 
     <footer class="p-4 bg-white border-t">
         <div class="max-w-4xl mx-auto flex flex-col gap-3">
             <div class="flex gap-2">
-                <input type="text" id="msg-input" placeholder="Mesajınızı yazın..." class="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none">
-                <button id="send-btn" class="bg-blue-600 text-white px-6 rounded-2xl font-bold hover:bg-blue-700 transition-all active:scale-90">GÖNDER</button>
+                <input type="text" id="msg-input" placeholder="Bir şeyler yaz..." class="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none">
+                <button id="send-btn" class="bg-blue-600 text-white px-6 rounded-2xl font-bold hover:bg-blue-700 active:scale-90 transition-all">GÖNDER</button>
             </div>
             <div class="flex items-center justify-between">
                 <label class="cursor-pointer text-xs font-bold text-blue-600 bg-blue-50 px-3 py-1 rounded-full border border-blue-100">
@@ -65,12 +64,12 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getDatabase, ref, push, set, onChildAdded, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-database.js";
 
-        // Firebase Yapılandırması (Giriş sorunu için doğrudan tanımlandı)
         const firebaseConfig = {
             apiKey: "AIzaSyB1tX9ZEFWNky53TCwbl8qsr60nuLbOtiI",
             authDomain: "chatzaisa-e12b4.firebaseapp.com",
+            databaseURL: "https://chatzaisa-e12b4-default-rtdb.firebaseio.com",
             projectId: "chatzaisa-e12b4",
             storageBucket: "chatzaisa-e12b4.firebasestorage.app",
             messagingSenderId: "134148188438",
@@ -79,65 +78,61 @@
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
-        const db = getFirestore(app);
+        const db = getDatabase(app);
         
-        const FIXED_PASSWORD = "TyUiLvYoU"; // Roblox'taki şifren
+        const FIXED_PASSWORD = "TyUiLvYoU";
         let currentUserNickname = localStorage.getItem('chat_user') || "";
 
-        // Giriş Butonu Tıklama
+        // Giriş Mantığı
         document.getElementById('login-btn').addEventListener('click', async () => {
-            const userInput = document.getElementById('username-input').value.trim();
-            const passInput = document.getElementById('password-input').value;
+            const user = document.getElementById('username-input').value.trim();
+            const pass = document.getElementById('password-input').value;
             const error = document.getElementById('login-error');
 
-            if (userInput && passInput === FIXED_PASSWORD) {
+            if (user && pass === FIXED_PASSWORD) {
                 try {
                     await signInAnonymously(auth);
-                    currentUserNickname = userInput;
-                    localStorage.setItem('chat_user', userInput);
-                    // UI onAuthStateChanged tarafından güncellenecek
-                } catch (err) {
-                    error.innerText = "Bağlantı Hatası: " + err.message;
-                    error.classList.remove('hidden');
-                }
+                    currentUserNickname = user;
+                    localStorage.setItem('chat_user', user);
+                } catch (e) { error.innerText = "Hata: " + e.message; error.classList.remove('hidden'); }
             } else {
-                error.innerText = "Şifre Yanlış veya İsim Boş!";
-                error.classList.remove('hidden');
+                error.innerText = "Şifre Yanlış!"; error.classList.remove('hidden');
             }
         });
 
-        // Oturum Kontrolü
         onAuthStateChanged(auth, (user) => {
             if (user && currentUserNickname) {
                 document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('user-display').innerText = `Aktif: ${currentUserNickname}`;
-                initChat();
+                document.getElementById('user-display').innerText = `Kullanıcı: ${currentUserNickname}`;
+                startListening();
             }
         });
 
-        // Sohbeti Başlat ve Dinle
-        function initChat() {
-            const messagesRef = collection(db, 'chats', 'global', 'messages');
-            const q = query(messagesRef, orderBy('createdAt', 'asc'), limit(50));
+        // Mesajları Dinle
+        function startListening() {
+            const messagesRef = ref(db, 'messages');
+            const container = document.getElementById('chat-messages');
+            container.innerHTML = '';
 
-            onSnapshot(q, (snapshot) => {
-                const container = document.getElementById('chat-messages');
-                container.innerHTML = '';
-                snapshot.forEach(doc => {
-                    const data = doc.data();
-                    const isMe = data.sender === currentUserNickname;
-                    const div = document.createElement('div');
-                    div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-4 animate-fade-in`;
-                    div.innerHTML = `
-                        <span class="text-[9px] text-slate-400 mb-1 font-bold">${data.sender}</span>
-                        <div class="max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-slate-800 border rounded-tl-none shadow-sm'}">
-                            <p class="text-sm">${data.text || ''}</p>
-                            ${data.image ? `<img src="${data.image}" class="mt-2 rounded-lg max-w-full border shadow-sm">` : ''}
-                        </div>`;
-                    container.appendChild(div);
-                });
-                container.scrollTop = container.scrollHeight;
+            onChildAdded(messagesRef, (snapshot) => {
+                const data = snapshot.val();
+                renderMessage(data);
             });
+        }
+
+        function renderMessage(data) {
+            const container = document.getElementById('chat-messages');
+            const isMe = data.sender === currentUserNickname;
+            const div = document.createElement('div');
+            div.className = `flex flex-col ${isMe ? 'items-end' : 'items-start'} mb-4`;
+            div.innerHTML = `
+                <span class="text-[9px] text-slate-400 mb-1 font-bold">${data.sender}</span>
+                <div class="max-w-[85%] p-3 rounded-2xl ${isMe ? 'bg-blue-600 text-white rounded-tr-none' : 'bg-white text-slate-800 border rounded-tl-none shadow-sm'}">
+                    <p class="text-sm">${data.text || ''}</p>
+                    ${data.image ? `<img src="${data.image}" class="mt-2 rounded-lg max-w-full">` : ''}
+                </div>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         }
 
         // Mesaj Gönder
@@ -153,14 +148,14 @@
                 imageData = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(file); });
             }
 
-            try {
-                await addDoc(collection(db, 'chats', 'global', 'messages'), {
-                    text, sender: currentUserNickname, image: imageData, createdAt: serverTimestamp()
-                });
-                input.value = '';
-                document.getElementById('image-input').value = '';
-                document.getElementById('file-name').innerText = '';
-            } catch (e) { alert("Mesaj gitmedi: " + e.message); }
+            const messagesRef = ref(db, 'messages');
+            const newMessageRef = push(messagesRef);
+            await set(newMessageRef, {
+                text, sender: currentUserNickname, image: imageData, timestamp: serverTimestamp()
+            });
+            input.value = '';
+            document.getElementById('image-input').value = '';
+            document.getElementById('file-name').innerText = '';
         });
 
         document.getElementById('image-input').addEventListener('change', (e) => {
