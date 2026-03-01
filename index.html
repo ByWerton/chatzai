@@ -38,9 +38,9 @@
     <header class="bg-white shadow-sm p-4 flex justify-between items-center border-b z-10">
         <div>
             <h2 class="font-bold text-xl text-blue-600 leading-none">Chatzai</h2>
-            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider">2 Hafta Hedefi Aktif</p>
+            <p class="text-[10px] text-slate-400 mt-1 uppercase tracking-wider italic">Gelecek Çarşamba İçin Hazır</p>
         </div>
-        <div id="user-display" class="text-xs bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 font-semibold border italic">
+        <div id="user-display" class="text-xs bg-slate-100 px-3 py-1.5 rounded-full text-slate-600 font-semibold border">
             Bağlantı Bekleniyor...
         </div>
     </header>
@@ -53,7 +53,7 @@
         <div class="max-w-4xl mx-auto flex flex-col gap-3">
             <div class="flex gap-2">
                 <input type="text" id="msg-input" placeholder="Mesajınızı yazın..." class="flex-1 p-3 bg-slate-50 border border-slate-200 rounded-2xl focus:ring-2 focus:ring-blue-500 outline-none">
-                <button id="send-btn" class="bg-blue-600 text-white p-3 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-90">
+                <button id="send-btn" class="bg-blue-600 text-white px-6 rounded-2xl font-bold hover:bg-blue-700 transition-all shadow-md active:scale-90">
                     GÖNDER
                 </button>
             </div>
@@ -71,25 +71,28 @@
         import { getAuth, signInAnonymously, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, collection, addDoc, query, orderBy, limit, onSnapshot, serverTimestamp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ÖNEMLİ: Firebase Console'dan aldığın bilgileri buraya yapıştır!
+        // Senin verdiğin Firebase Bilgileri yerleştirildi
         const firebaseConfig = {
-            apiKey: "AIzaSy...", 
-            authDomain: "projen.firebaseapp.com",
-            projectId: "projen-id",
-            storageBucket: "projen.appspot.com",
-            messagingSenderId: "12345",
-            appId: "1:12345:web:abc"
+            apiKey: "AIzaSyB1tX9ZEFWNky53TCwbl8qsr60nuLbOtiI",
+            authDomain: "chatzaisa-e12b4.firebaseapp.com",
+            databaseURL: "https://chatzaisa-e12b4-default-rtdb.firebaseio.com",
+            projectId: "chatzaisa-e12b4",
+            storageBucket: "chatzaisa-e12b4.firebasestorage.app",
+            messagingSenderId: "134148188438",
+            appId: "1:134148188438:web:4151b757e96b60732f4837",
+            measurementId: "G-TMHHNSTFX7"
         };
 
         const app = initializeApp(firebaseConfig);
         const auth = getAuth(app);
         const db = getFirestore(app);
-        const appId = "chatzai-private-v1"; 
-        const FIXED_PASSWORD = "TyUiLvYoU"; //
+        
+        const appId = "chatzai-v1"; 
+        const FIXED_PASSWORD = "TyUiLvYoU"; // Roblox profilindeki şifre
 
         let currentUserNickname = localStorage.getItem('chat_user') || "";
 
-        // Giriş Butonu Dinleyici
+        // Giriş İşlemi
         document.getElementById('login-btn').addEventListener('click', async () => {
             const userInput = document.getElementById('username-input').value.trim();
             const passInput = document.getElementById('password-input').value;
@@ -107,6 +110,7 @@
                     error.innerText = "Firebase Hatası: " + err.message;
                     error.classList.remove('hidden');
                     btn.disabled = false;
+                    btn.innerText = "Giriş Yap";
                 }
             } else {
                 error.innerText = "Şifre Yanlış veya İsim Boş!";
@@ -117,7 +121,7 @@
         onAuthStateChanged(auth, (user) => {
             if (user && currentUserNickname) {
                 document.getElementById('login-screen').classList.add('hidden');
-                document.getElementById('user-display').innerText = `Hoş geldin: ${currentUserNickname}`;
+                document.getElementById('user-display').innerText = `Kullanıcı: ${currentUserNickname}`;
                 initChat();
             }
         });
@@ -158,10 +162,18 @@
                 imageData = await new Promise(r => { reader.onload = e => r(e.target.result); reader.readAsDataURL(imageInput.files[0]); });
             }
 
-            await addDoc(collection(db, 'chats', appId, 'messages'), {
-                text, image: imageData, sender: currentUserNickname, createdAt: serverTimestamp()
-            });
-            input.value = ''; imageInput.value = '';
+            try {
+                await addDoc(collection(db, 'chats', appId, 'messages'), {
+                    text, image: imageData, sender: currentUserNickname, createdAt: serverTimestamp()
+                });
+                input.value = ''; imageInput.value = '';
+            } catch (e) {
+                alert("Mesaj Gönderilemedi: " + e.message);
+            }
+        });
+
+        document.getElementById('image-input').addEventListener('change', (e) => {
+            document.getElementById('file-name').innerText = e.target.files[0] ? e.target.files[0].name : "";
         });
     </script>
 </body>
